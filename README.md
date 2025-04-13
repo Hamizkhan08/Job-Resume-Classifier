@@ -3,7 +3,7 @@
 
 A web application built with Flask and Bootstrap 5 to automatically classify uploaded resumes into job roles and compare the relevance of two resumes against a specific job description.
 
-job.png
+![job](https://github.com/user-attachments/assets/d02de234-d723-4caf-9ae2-9336a20ebbc4)
 
 ## About The Project
 
