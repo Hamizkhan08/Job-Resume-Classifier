@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light"> <!-- Set initial theme, JS will handle switching -->
+<head>
+    <meta charset="UTF-8">
+    <title>Resume Classifier & Comparator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Chart.js REMOVED -->
+    <style>
+        /* --- Theme Variables --- */
+        :root { /* Light Theme: Blue/Green/White */
+            --bg-primary: #f0f4f8;        /* Very light blue-gray */
+            --bg-secondary: #ffffff;      /* White */
+            --bg-tertiary: #e9ecef;      /* Light gray */
+            --text-primary: #212529;      /* Dark Gray */
+            --text-secondary: #5a626e;    /* Medium Gray */
+            --text-muted: #7a828a;        /* Lighter Muted Gray */
+            --border-color: #d8dfe6;    /* Light blue-gray border */
+            --accent-primary: #007bff;    /* Bootstrap Blue */
+            --accent-primary-hover: #0056b3;/* Darker Blue */
+            --accent-secondary: #28a745;  /* Bootstrap Green */
+            --accent-danger: #dc3545;     /* Bootstrap Red */
+            --accent-danger-hover: #bb2d3b;
+            --accent-warning: #ffc107;    /* Bootstrap Yellow */
+            --accent-success: var(--accent-secondary); /* Use Green for success */
+            --accent-info: #17a2b8;       /* Bootstrap Teal */
+            --link-color: var(--accent-primary);
+            --link-hover-color: var(--accent-primary-hover);
+            --card-shadow: 0 4px 15px rgba(0, 86, 179, 0.07); /* Subtle blue shadow */
+            --code-bg: #e9ecef;
+            --code-color: #d63384;
+            --accent-primary-rgb: 0, 123, 255;
+            --accent-danger-rgb: 220, 53, 69;
+            --accent-success-rgb: 40, 167, 69; /* Green RGB */
+        }
+        .dark-theme { /* Dark Theme: Black/Red/Electric Blue */
+            --bg-primary: #121212;        /* Near Black */
+            --bg-secondary: #1e1e1e;      /* Dark Gray */
+            --bg-tertiary: #2c2c2e;      /* Slightly Lighter Dark Gray */
+            --text-primary: #e4e6eb;      /* Light Gray */
+            --text-secondary: #b0bac0;    /* Medium Light Gray */
+            --text-muted: #888d93;        /* Visible Muted Gray */
+            --border-color: #3a3a3c;      /* Darker Border */
+            --accent-primary: #ff3b5f;    /* Vibrant Red */
+            --accent-primary-hover: #e02146;/* Darker Vibrant Red */
+            --accent-secondary: #00f2ea;  /* Electric Blue/Cyan */
+            --accent-danger: #ff5c7a;     /* Lighter Red for Danger */
+            --accent-danger-hover: var(--accent-primary);
+            --accent-warning: #ffc767;    /* Vibrant Yellow */
+            --accent-success: #34d399;    /* Vibrant Green */
+            --accent-info: var(--accent-secondary); /* Use Electric Blue for Info */
+            --link-color: var(--accent-secondary); /* Electric Blue links */
+            --link-hover-color: #00cdd4;   /* Slightly darker electric blue */
+            --card-shadow: 0 5px 20px rgba(0, 0, 0, 0.35);
+            --code-bg: #2c2c2e;
+            --code-color: #f06aae;
+            --accent-primary-rgb: 255, 59, 95;
+            --accent-danger-rgb: 255, 92, 122;
+            --accent-success-rgb: 52, 211, 153;
+        }
+
+        /* Apply Bootstrap's dark theme body variables when .dark-theme is active */
+        .dark-theme {
+            --bs-body-color: var(--text-primary);
+            --bs-body-bg: var(--bg-primary);
+            --bs-border-color: var(--border-color);
+            --bs-secondary-color: var(--text-secondary);
+            --bs-secondary-bg: var(--bg-secondary);
+            --bs-tertiary-color: var(--text-muted);
+            --bs-tertiary-bg: var(--bg-tertiary);
+            --bs-emphasis-color: #fff;
+            --bs-body-color-rgb: 228, 230, 235;
+            --bs-body-bg-rgb: 18, 18, 18;
+            --bs-link-color: var(--link-color);
+            --bs-link-hover-color: var(--link-hover-color);
+            --bs-link-color-rgb: 0, 242, 234; /* Electric Blue RGB */
+            --bs-code-color: var(--code-color);
+            --bs-border-color-translucent: rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- Base Styles --- */
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; /* System font stack */
+            transition: background-color 0.3s ease, color 0.3s ease;
+            font-size: 0.98rem;
+        }
+        .wrapper { display: flex; width: 100%; height: 100vh; align-items: stretch; }
+
+        /* --- Sidebar --- */
+        #sidebar {
+            min-width: 260px; max-width: 260px; background: var(--bg-secondary); color: var(--text-secondary);
+            transition: all 0.3s ease; display: flex; flex-direction: column;
+            border-right: 1px solid var(--border-color); z-index: 1030; height: 100vh;
+        }
+        #sidebar.active { margin-left: -260px; }
+        .sidebar-header { padding: 18px 20px; background: var(--bg-tertiary); text-align: center; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        .sidebar-header h3 { color: var(--text-primary); margin-bottom: 0; font-weight: 600; font-size: 1.2rem; }
+        .sidebar-header .fa-robot { margin-right: 10px; color: var(--accent-primary); }
+        #sidebar ul.components { padding: 15px 0; border-bottom: 1px solid var(--border-color); flex-grow: 1; overflow-y: auto; list-style: none; margin: 0; }
+        #sidebar ul p { color: var(--text-muted); padding: 10px 20px; font-weight: 600; font-size: 0.9em; text-transform: uppercase; }
+        #sidebar ul li a { padding: 12px 20px; font-size: 1.0rem; display: block; color: var(--text-secondary); text-decoration: none; transition: all 0.2s ease; border-left: 4px solid transparent; }
+        #sidebar ul li a:hover { color: var(--accent-primary); background: var(--bg-tertiary); border-left-color: var(--accent-primary); }
+        #sidebar ul li a i { margin-right: 12px; width: 22px; text-align: center; }
+        #sidebar ul li.active > a, a[aria-expanded="true"] { color: var(--accent-primary); background: var(--bg-tertiary); font-weight: 600; border-left-color: var(--accent-primary); }
+        ul.collapse, ul.collapsing { background-color: var(--bg-primary); list-style: none; padding-left: 0; }
+        ul.collapse li a { padding-left: 45px !important; font-size: 0.95em; border-left: none !important; }
+        ul.collapse li a:hover { background-color: var(--bg-tertiary); }
+        .sidebar-accuracy-details { padding: 10px 20px 10px 45px; font-size: 0.9em; background-color: rgba(0,0,0,0.03); border-top: 1px dashed var(--border-color); }
+        .dark-theme .sidebar-accuracy-details { background-color: rgba(255,255,255,0.05); border-top-color: var(--border-color); }
+        .sidebar-footer { padding: 15px 20px; background: var(--bg-tertiary); border-top: 1px solid var(--border-color); font-size: 0.9em; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
+        .theme-toggle-row { display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-footer button { padding: 6px 12px; }
+        .sidebar-footer .form-label { margin-bottom: 0; font-size: 0.9em; color: var(--text-muted); }
+        .sidebar-footer .btn-theme-toggle { font-size: 1.2em; padding: 5px 8px; line-height: 1; }
+        .sidebar-footer .form-check-label { font-size: 0.9em; }
+
+        /* --- Content Area --- */
+        #content { width: 100%; padding: 25px 30px; height: 100vh; transition: all 0.3s; overflow-y: auto; background-color: var(--bg-primary); position: relative; }
+
+        /* --- Cards --- */
+        .card { background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 25px; box-shadow: var(--card-shadow); }
+        .card-header { background-color: transparent; border-bottom: 1px solid var(--border-color); padding: 1rem 1.5rem; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--text-primary); }
+        .card-body { padding: 1.5rem; }
+
+        /* --- Drag and Drop --- */
+        #drop-zone { border: 2px dashed var(--border-color); border-radius: 8px; padding: 35px 20px; text-align: center; color: var(--text-secondary); background-color: var(--bg-primary); margin-bottom: 20px; transition: border-color 0.3s, background-color 0.3s; cursor: pointer; }
+        #drop-zone:hover { border-color: var(--accent-primary); background-color: var(--bg-tertiary); }
+        #drop-zone.dragover { border-color: var(--accent-primary); background-color: rgba(var(--accent-primary-rgb), 0.1); border-style: solid; }
+        #drop-zone i { font-size: 2.5rem; margin-bottom: 15px; display: block; color: var(--accent-primary); }
+        #file-input { display: none; }
+        #file-list { margin-top: 15px; font-size: 0.9em; color: var(--text-secondary); max-height: 100px; overflow-y: auto; text-align: left; padding: 0 20px; }
+        #file-list ul { list-style: none; padding-left: 0; margin-bottom: 0; }
+        #file-list li { padding: 2px 0; }
+        .text-danger { color: var(--accent-danger) !important; }
+        .fw-bold { font-weight: bold !important; }
+
+        /* --- Buttons --- */
+        button, .btn { padding: 8px 18px; border-radius: 6px; font-size: 0.95rem; cursor: pointer; transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out; margin: 5px; vertical-align: middle; border: 1px solid transparent;}
+        .btn i { margin-right: 6px; }
+        .btn-primary { background-color: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+        .btn-primary:hover { background-color: var(--accent-primary-hover); border-color: var(--accent-primary-hover); color: #fff; }
+        .btn-outline-secondary { color: var(--text-secondary); border-color: var(--border-color); }
+        .btn-outline-secondary:hover { background-color: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-color); }
+        .btn-success { background-color: var(--accent-success); border-color: var(--accent-success); color: #fff; }
+        .btn-success:hover { background-color: #1f9e54; border-color: #1c944e; color: #fff; } /* Darker green */
+        .dark-theme .btn-success { background-color: var(--accent-success); border-color: var(--accent-success); color: #1a1d24; } /* Dark text on light green */
+        .dark-theme .btn-success:hover { background-color: #48e0a4; border-color: #48e0a4; color: #1a1d24;} /* Lighter green hover */
+        .btn-outline-danger { color: var(--accent-danger); border-color: var(--accent-danger); }
+        .btn-outline-danger:hover { background-color: var(--accent-danger); color: #fff; }
+        .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
+        .btn-preview-resume { padding: 4px 8px; font-size: 0.9em; line-height: 1; }
+        .btn-preview-resume i { pointer-events: none; margin-right: 0; }
+        .btn-warning { background-color: var(--accent-warning); border-color: var(--accent-warning); color: #493800; } /* Darker text for yellow */
+        .btn-warning:hover { background-color: #e6a840; border-color: #d99e3a; color: #493800; }
+        .dark-theme .btn-warning { background-color: var(--accent-warning); border-color: var(--accent-warning); color: #4d3b00; }
+        .dark-theme .btn-warning:hover { background-color: #ffd47a; border-color: #ffd47a; color: #4d3b00;}
+
+        /* --- Results Table --- */
+        .table-responsive { max-height: 450px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; color: var(--text-primary); margin-bottom: 0; background-color: var(--bg-secondary); }
+        th { background-color: var(--bg-tertiary); padding: 12px 15px; text-align: left; position: sticky; top: 0; z-index: 1; border-bottom: 2px solid var(--border-color); font-weight: 600; }
+        td { padding: 10px 15px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; font-size: 0.95em; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:nth-child(even) { background-color: var(--bg-primary); }
+        tbody tr:hover { background-color: var(--bg-tertiary); }
+        td.error-cell { background-color: rgba(var(--accent-danger-rgb), 0.15) !important; color: var(--accent-danger); font-weight: 500; }
+        td.not-found { font-style: italic; color: var(--text-muted); }
+        td.filename { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+        td.prediction-cell { font-weight: 500; }
+
+        /* --- PDF Preview Area --- */
+        .pdf-preview-section { margin-top: 20px; }
+        .pdf-preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .pdf-preview-header h4 { margin-bottom: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;}
+        #pdf-preview-container { display: flex; border-radius: 8px; transition: height 0.3s ease-in-out, background-color 0.3s ease; border: 1px solid var(--border-color); min-height: 400px; background-color: var(--bg-primary); }
+        #pdf-preview-container.no-pdf-view { display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+        #pdf-preview-container.multi-pdf-view { height: 55vh; max-height: 500px; overflow-x: auto; overflow-y: hidden; padding: 10px; background-color: var(--bg-tertiary); scroll-snap-type: x mandatory; gap: 15px; }
+        #pdf-preview-container.multi-pdf-view .pdf-item { flex: 0 0 95%; max-width: 95%; height: calc(100% - 10px); scroll-snap-align: center; display: flex; flex-direction: column; background-color: var(--bg-secondary); border-radius: 6px; box-shadow: var(--card-shadow); overflow: hidden; border: 2px solid transparent; transition: border-color 0.2s ease; }
+        #pdf-preview-container.multi-pdf-view .pdf-item.active-preview { border-color: var(--accent-primary); }
+        #pdf-preview-container.single-pdf-view { height: 65vh; max-height: 600px; overflow: hidden; background-color: transparent; padding: 0; gap: 0; border: 1px solid var(--border-color); }
+        #pdf-preview-container.single-pdf-view .pdf-item { flex: 1 1 100%; max-width: 100%; height: 100%; scroll-snap-align: none; display: flex; flex-direction: column; background-color: var(--bg-secondary); border-radius: 8px; box-shadow: none; overflow: hidden; border: none; }
+        .pdf-item iframe { width: 100%; flex-grow: 1; border: none; border-bottom: 1px solid var(--border-color); background-color: #525659; }
+        .pdf-item .pdf-filename-display { padding: 8px 12px; font-size: 0.85em; text-align: center; color: var(--text-muted); background-color: var(--bg-tertiary); flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top-left-radius: 0; border-top-right-radius: 0; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+        #pdf-preview-container.single-pdf-view .pdf-item .pdf-filename-display { border-radius: 0; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
+
+        /* --- Dashboard --- */
+        .dashboard-section .card-header {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover)); /* Keep gradient for both themes, using primary accent */
+            color: #fff;
+            border-bottom: none;
+        }
+        .dashboard-section .card-header i { color: rgba(255, 255, 255, 0.8); }
+        .stat-card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; text-align: center; transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; box-shadow: var(--card-shadow); position: relative; overflow: hidden; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); }
+        .dark-theme .stat-card:hover { box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25); }
+        .stat-card .stat-icon { font-size: 2.5rem; margin-bottom: 1rem; line-height: 1; color: var(--accent-primary); opacity: 0.8; }
+        .stat-card .stat-icon .text-warning { color: var(--accent-warning) !important; } /* Override icon color */
+        .stat-card .stat-icon .text-success { color: var(--accent-success) !important; }
+        .stat-card .stat-label { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .stat-counter { font-size: 2.5rem; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+        .stat-card .stat-subtext { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem; }
+        ul.role-list { list-style: none; padding: 0; max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-secondary); margin-top: 0; box-shadow: var(--card-shadow); }
+        ul.role-list li { background-color: transparent; padding: 10px 15px; margin-bottom: 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; transition: background-color 0.2s; }
+        ul.role-list li:last-child { border-bottom: none; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
+        ul.role-list li:first-child { border-top-left-radius: 12px; border-top-right-radius: 12px; }
+        ul.role-list li:hover { background-color: var(--bg-tertiary); }
+        ul.role-list li .badge { font-size: 0.9em; font-weight: 600; background-color: var(--accent-primary) !important; color: white; padding: 0.3em 0.6em;}
+        #downloadForm .form-select { font-size: 0.9rem; }
+        #downloadForm .btn { padding-top: 0.4rem; padding-bottom: 0.4rem; }
+
+        /* --- Forms & Alerts --- */
+        select.form-select, .form-control, textarea.form-control { background-color: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); }
+        select.form-select:focus, .form-control:focus, textarea.form-control:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 0.25rem rgba(var(--accent-primary-rgb), 0.25); background-color: var(--bg-secondary); color: var(--text-primary); }
+        textarea.form-control { resize: vertical; }
+        .placeholder-text { color: var(--text-muted); text-align: center; padding: 30px 20px; font-style: italic; }
+        .app-footer { text-align: center; padding: 20px 0; margin-top: 30px; font-size: 0.85em; color: var(--text-muted); border-top: 1px solid var(--border-color); }
+        .alert { font-size: 0.95rem; border: none; border-left-width: 4px; border-left-style: solid; }
+        .alert-danger { background-color: rgba(var(--accent-danger-rgb), 0.1); border-left-color: var(--accent-danger); color: var(--accent-danger); }
+        .alert-warning { background-color: rgba(255, 193, 7, 0.1); border-left-color: var(--accent-warning); color: #b98900; }
+        .dark-theme .alert-warning { color: var(--accent-warning); }
+        .alert-success { background-color: rgba(var(--accent-success-rgb), 0.1); border-left-color: var(--accent-success); color: var(--accent-success); }
+        .alert-info { background-color: rgba(23, 162, 184, 0.1); border-left-color: var(--accent-info); color: #0c6a7a; } /* Bootstrap Teal */
+        .dark-theme .alert-info { background-color: rgba(79, 195, 247, 0.1); border-left-color: var(--accent-info); color: var(--accent-info); } /* Use Electric Blue/Cyan */
+        .dark-theme ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7; }
+        .dark-theme :-moz-placeholder { color: var(--text-muted) !important; opacity: 0.7; }
+        .dark-theme ::-moz-placeholder { color: var(--text-muted) !important; opacity: 0.7; }
+        .dark-theme :-ms-input-placeholder { color: var(--text-muted) !important; opacity: 0.7; }
+        .dark-theme ::placeholder { color: var(--text-muted) !important; opacity: 0.7; }
+
+        /* Status Indicators */
+        .status-indicator { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .status-ok { background-color: var(--accent-success); }
+        .status-warning { background-color: var(--accent-warning); }
+        .status-error { background-color: var(--accent-danger); }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            #sidebar { margin-left: -260px; } #sidebar.active { margin-left: 0; }
+            #content { padding: 15px; }
+            .table-responsive { max-height: 350px; }
+            #pdf-preview-container { min-height: 350px; }
+            #sidebar ul li a { font-size: 0.95rem; padding: 10px 15px; }
+            .sidebar-header h3 { font-size: 1.1rem; }
+            .card-header { font-size: 1.0rem; padding: 0.8rem 1rem; }
+            .btn { font-size: 0.9rem; padding: 6px 14px; }
+            .stat-card .stat-icon { font-size: 2rem; }
+            .stat-card .stat-counter { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body class="light-theme"> <!-- Default theme, JS applies preference -->
+
+<div class="wrapper">
+    <!-- Sidebar -->
+    <nav id="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fa-solid fa-robot"></i>Job Resume Classifier</h3>
+        </div>
+
+        <ul class="components">
+            <p>Menu</p>
+            <li class="active"><a href="#classifier-section" class="nav-link"><i class="fa-solid fa-tags"></i> Classify Resumes</a></li>
+            <li><a href="#results-section" class="nav-link"><i class="fa-solid fa-table-list"></i> Classification Results</a></li>
+            <li><a href="#comparator-section" class="nav-link"><i class="fa-solid fa-code-compare"></i> Compare Resumes</a></li>
+            <li><a href="#dashboard-section" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+
+            <!-- Model Details -->
+            <li>
+                <a href="#modelSubmenu" data-bs-toggle="collapse" aria-expanded="false" class="dropdown-toggle nav-link">
+                    <i class="fa-solid fa-circle-info"></i> System Status
+                </a>
+                <ul class="collapse list-unstyled" id="modelSubmenu">
+                    <li><a href="#" class="nav-link-sub"> <span class="status-indicator {{ 'status-ok' if classifier_ready else 'status-error' }}"></span> Classifier: {{ 'Ready' if classifier_ready else 'Not Ready' }} </a></li>
+                    <li><a href="#" class="nav-link-sub"> <span class="status-indicator {{ 'status-ok' if comparator_ready else 'status-error' }}"></span> Comparator: {{ 'Ready' if comparator_ready else 'Not Ready' }} </a></li>
+                    <li><a href="#" class="nav-link-sub"> <span class="status-indicator {{ 'status-ok' if nltk_ok else 'status-warning' }}"></span> NLTK Data: {{ 'OK' if nltk_ok else 'Check Failed' }} </a></li>
+                    <li class="sidebar-accuracy-details">
+                        <div><strong>Model:</strong> {{ model_name | default('N/A') }}</div>
+                        <div><strong>Accuracy:</strong> {{ accuracy | default('N/A') }}</div>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer">
+             <div class="theme-toggle-row">
+                 <span class="form-label">Theme:</span>
+                 <button id="theme-toggle" class="btn btn-sm btn-outline-secondary btn-theme-toggle" title="Toggle theme"><i class="fa-solid fa-sun"></i></button>
+             </div>
+             <form action="{{ url_for('clear_dashboard') }}" method="post" id="clearHistoryForm" class="d-grid" onsubmit="return confirmClearHistory();">
+                 <div class="form-check form-switch mb-2">
+                     <input class="form-check-input" type="checkbox" role="switch" id="clearFilesCheck" name="clear_files" value="yes">
+                     <label class="form-check-label" for="clearFilesCheck">Also delete uploaded files</label>
+                 </div>
+                 <button type="submit" class="btn btn-sm btn-outline-danger w-100"><i class="fa-solid fa-trash-can"></i> Clear History</button>
+             </form>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="content">
+        <!-- Sidebar Toggle Button -->
+        <button type="button" id="sidebarCollapse" class="btn btn-sm btn-outline-secondary d-md-none mb-3"> <i class="fas fa-align-left"></i> <span>Toggle Sidebar</span> </button>
+
+        <!-- Flash Messages Area -->
+        <div id="flash-message-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category in ['success', 'warning', 'danger', 'info'] else 'info' }} alert-dismissible fade show" role="alert">
+                         <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'warning' or category == 'danger' else 'info-circle' }} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Section 1: Resume Classifier -->
+        <section id="classifier-section">
+            <div class="card mb-4">
+                <div class="card-header"><i class="fa-solid fa-tags text-primary"></i> Resume Role Classifier</div>
+                <div class="card-body">
+                    {% if classifier_ready %}
+                        <form method="post" enctype="multipart/form-data" id="upload-form" action="{{ url_for('index') }}">
+                            <div id="drop-zone" title="Click or drag files here">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                <div>Drag & drop PDF, DOCX, or TXT files here<br>or click to select for CLASSIFICATION</div>
+                                <div id="file-list"></div>
+                                <div id="file-error-list" class="text-danger mt-2" style="font-size: 0.9em;"></div>
+                            </div>
+                            <input type="file" name="resumes" id="file-input" multiple required accept=".pdf,.docx,.txt" aria-label="Resume file input">
+                            <div class="text-center mt-3">
+                                <button type="submit" class="btn btn-primary" id="classifyButton"><i class="fas fa-cogs"></i> Classify Uploaded Resumes</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="resetClassifierForm();"><i class="fas fa-eraser"></i> Clear Selection</button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-danger text-center"> <i class="fas fa-times-circle me-2"></i>Classifier components not loaded. Classification disabled. Check logs and ensure model files exist. </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Classification Results & Preview (Conditional) -->
+        {% if classification_results is defined and classification_results %}
+            <section id="results-section">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center"> <!-- Added flex for button alignment -->
+                        <span><i class="fa-solid fa-table-list text-info"></i> Classification Results & Preview (Last Batch)</span>
+                        {# --- ADD CLEAR BUTTON --- #}
+                        <button type="button" class="btn btn-sm btn-outline-warning" id="clear-current-results-btn" title="Clear this batch's results from view">
+                             <i class="fas fa-eraser"></i> Clear This View
+                        </button>
+                        {# --- END CLEAR BUTTON --- #}
+                    </div>
+                    <div class="card-body" id="results-card-body"> <!-- Added ID -->
+                        <div class="row g-3">
+                            <!-- Results Table Column -->
+                            <div class="col-lg-6 order-lg-1">
+                                <h4><i class="fa-solid fa-clipboard-list text-primary"></i> Predictions</h4>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover align-middle">
+                                        <thead class="table-light"> <tr> <th>Filename</th> <th>Predicted Role</th> <th>Extracted Title</th> <th class="text-center">Action</th> </tr> </thead>
+                                        <tbody id="results-table-body">
+                                            {% for item in classification_results %}
+                                                <tr>
+                                                    <td class="filename" title="{{ item.display_filename }}">{{ item.display_filename }}</td>
+                                                    <td class="prediction-cell {% set p_lower = item.prediction | string | lower %}{% if p_lower in ['unreadable/empty', 'extraction error', 'no features found', 'processing error'] or p_lower.startswith('prediction error') %}error-cell{% elif item.prediction == 'Not Found' %}not-found{% endif %}"> {{ item.prediction }} </td>
+                                                    <td class="{% if item.job_title == 'Not Found' %}not-found{% elif item.job_title | string | lower in ['error', 'extraction failed/info', 'extraction failed'] %}error-cell{% endif %}"> {{ item.job_title }} </td>
+                                                    <td class="text-center">
+                                                        {% if item.file_url and item.stored_filename and item.stored_filename.lower().endswith('.pdf') %} <button type="button" class="btn btn-sm btn-outline-primary btn-preview-resume" data-pdf-url="{{ item.file_url }}" data-pdf-name="{{ item.display_filename }}" title="Preview PDF: {{ item.display_filename }}"> <i class="fas fa-eye"></i> </button>
+                                                        {% elif item.file_url %} <a href="{{ item.file_url }}" target="_blank" class="btn btn-sm btn-outline-secondary btn-preview-resume" title="Open File: {{ item.display_filename }}"> <i class="fas fa-file-arrow-down"></i> </a>
+                                                        {% else %} <span class="text-muted" title="Preview/Open not available"><i class="fas fa-eye-slash"></i></span> {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- PDF Preview Column -->
+                            <div class="col-lg-6 order-lg-2 pdf-preview-section">
+                                <div class="pdf-preview-header"> <h4><i class="fa-regular fa-file-pdf text-danger"></i> PDF Preview</h4> <button id="pdf-fullscreen-btn" class="btn btn-sm btn-outline-secondary" title="Open current PDF in new tab" style="display: none;"><i class="fa-solid fa-up-right-from-square"></i> Fullscreen</button> </div>
+                                <div id="pdf-preview-container">
+                                    {% if pdf_urls_current %}
+                                        {% for pdf_item in pdf_urls_current %}
+                                            <div class="pdf-item" data-pdf-url="{{ pdf_item.url }}" data-pdf-name="{{ pdf_item.name }}"> <iframe class="pdf-viewer" src="{{ pdf_item.url }}#view=FitH&toolbar=0&navpanes=0&scrollbar=0" frameborder="0" title="PDF Preview: {{ pdf_item.name }}"></iframe> <div class="pdf-filename-display" title="{{ pdf_item.name }}"><small>{{ pdf_item.name }}</small></div> </div>
+                                        {% endfor %}
+                                    {% else %} <div class="placeholder-text w-100" id="pdf-placeholder"> <p><i class="fas fa-file-pdf fa-2x mb-2"></i><br>No PDFs in last batch or click <i class="fas fa-eye"></i> to preview.</small></p> </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- End Card Body -->
+                    <div class="card-footer text-muted text-center" id="results-cleared-message" style="display: none;"> <!-- Hidden Message -->
+                        <small><i class="fas fa-info-circle"></i> Last batch results cleared from view. Upload new files to see results.</small>
+                    </div>
+                </div>
+            </section>
+        {% endif %} {# End of conditional results section #}
+
+        <!-- Section 2: Resume Comparator -->
+        <section id="comparator-section">
+             <div class="card">
+                 <div class="card-header"><i class="fa-solid fa-code-compare text-success"></i> Compare Two Resumes Against a Job Role</div>
+                 <div class="card-body">
+                     {% if comparator_ready %}
+                         <form action="{{ url_for('compare_resumes') }}" method="post" enctype="multipart/form-data" id="compare-form">
+                             <div class="row g-3">
+                                 <div class="col-md-6"> <label for="resume1_compare" class="form-label">Resume 1 <span class="text-danger">*</span></label> <input class="form-control" type="file" id="resume1_compare" name="resume1_compare" accept=".pdf,.docx,.txt" required aria-label="Resume 1 file input"> </div>
+                                 <div class="col-md-6"> <label for="resume2_compare" class="form-label">Resume 2 <span class="text-danger">*</span></label> <input class="form-control" type="file" id="resume2_compare" name="resume2_compare" accept=".pdf,.docx,.txt" required aria-label="Resume 2 file input"> </div>
+                                 <div class="col-12"> <label for="job_role_compare" class="form-label">Target Job Role / Description <span class="text-danger">*</span></label> <textarea class="form-control" id="job_role_compare" name="job_role_compare" rows="4" placeholder="Paste the job description or enter key skills..." required aria-label="Target job role description"></textarea> </div>
+                                 <div class="col-12 text-center"> <button type="submit" class="btn btn-success"><i class="fas fa-balance-scale"></i> Compare Resumes</button> <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('compare-form').reset();"><i class="fas fa-eraser"></i> Clear</button> </div>
+                             </div>
+                         </form>
+                     {% else %}
+                         <div class="alert alert-warning text-center"> <i class="fas fa-exclamation-triangle me-2"></i>Comparator requires the vectorizer (`.pkl`) file. Comparison disabled. </div>
+                     {% endif %}
+                 </div>
+             </div>
+         </section>
+
+        <!-- Section 4: Dashboard -->
+        <section id="dashboard-section" class="dashboard-section mt-4">
+             <div class="card border-0 shadow-sm">
+                <div class="card-header dashboard-section">
+                    <i class="fa-solid fa-chart-line"></i>Classification Dashboard
+                </div>
+                <div class="card-body">
+                    <div class="row g-4 mb-4"> <!-- Row for Stat Cards -->
+                        <div class="col-lg-4 col-md-6">
+                            <div class="stat-card">
+                                <div class="stat-icon"><i class="fas fa-file-alt text-primary"></i></div>
+                                <div class="stat-label">Total Resumes Processed</div>
+                                <div class="stat-counter" id="total-resumes-counter" data-target="{{ total_resumes | default(0) }}">0</div>
+                                <div class="stat-subtext">(Valid classifications in history)</div>
+                            </div>
+                        </div>
+                         <div class="col-lg-4 col-md-6">
+                             <div class="stat-card">
+                                 <div class="stat-icon"><i class="fas fa-star text-warning"></i></div>
+                                 <div class="stat-label">Most Frequent Role</div>
+                                 {% set top_role = role_counts.items() | sort(attribute=1, reverse=true) | first %}
+                                 <div class="stat-counter fs-4 fw-semibold" title="{{ top_role[0] if top_role else 'N/A' }}">
+                                     {{ top_role[0] | truncate(20) if top_role else 'N/A' }}
+                                 </div>
+                                 <div class="stat-subtext">({{ top_role[1] if top_role else '0' }} instances)</div>
+                             </div>
+                         </div>
+                         <div class="col-lg-4 col-md-12">
+                            <div class="stat-card">
+                                <div class="stat-icon"><i class="fas fa-download text-success"></i></div>
+                                <div class="stat-label">Download by Role</div>
+                                <div class="mt-2">
+                                    {% if role_counts %}
+                                        <form id="downloadForm" class="d-flex gap-2 flex-wrap justify-content-center" action="#" method="get" onsubmit="handleDownload(event)">
+                                            <select id="roleSelect" name="category" class="form-select form-select-sm" required aria-label="Select role to download" style="max-width: 200px;">
+                                                <option value="" disabled selected>Select role...</option>
+                                                {% for role in role_counts.keys() | sort %}
+                                                    <option value="{{ role }}">{{ role }} ({{ role_counts[role] }})</option>
+                                                {% endfor %}
+                                            </select>
+                                            <button type="submit" class="btn btn-success btn-sm flex-shrink-0"><i class="fas fa-file-archive"></i> Get ZIP</button>
+                                        </form>
+                                    {% else %}
+                                        <p class="placeholder-text mb-0">No roles to download.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                         </div>
+                    </div> <!-- End Stat Card row -->
+
+                    <!-- Role List - Now takes full width -->
+                    <div class="row g-4">
+                         <div class="col-12">
+                             <h4><i class="fas fa-list-ul text-secondary"></i> Classified Roles (Counts)</h4>
+                             {% if role_counts %}
+                                 <ul class="role-list">
+                                     {% for role, count in role_counts.items() | sort(attribute=1, reverse=true) %} {# Sort by count desc #}
+                                         <li>{{ role }} <span class="badge rounded-pill ms-auto">{{ count }}</span></li>
+                                     {% else %}
+                                          <li>No roles classified yet.</li>
+                                     {% endfor %}
+                                 </ul>
+                             {% else %}
+                                 <p class="placeholder-text mt-3">No classification data logged.</p>
+                             {% endif %}
+                         </div>
+                    </div>
+
+                </div> <!-- End card-body -->
+            </div> <!-- End card -->
+        </section>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            Job Resume Classifier  |   Developed By Hamiz Khan   |   © {{ now().year }}
+        </footer>
+
+    </div> <!-- End Content -->
+</div> <!-- End Wrapper -->
+
+<!-- Bootstrap Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
+<script>
+    // --- Constants and Utility Functions ---
+    const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'txt'];
+    function isFileTypeAllowed(filename) { /* ... */ return filename && ALLOWED_EXTENSIONS.includes(filename.split('.').pop()?.toLowerCase()); }
+    function getCssVariable(variableName) { /* ... */ return getComputedStyle(document.body).getPropertyValue(variableName).trim() || '#000000'; }
+    function getAccentRgb(variableName) { /* ... */ const color = getCssVariable(variableName); try { /* ... */ } catch (e) { console.error("RGB parse error:", e); } return document.body.classList.contains('dark-theme') ? '229, 62, 62' : '13, 110, 253'; }
+
+    // --- Animated Counter Function ---
+    function animateCounter(element) {
+        const target = parseInt(element.dataset.target, 10);
+        if (isNaN(target)) { element.textContent = element.dataset.target || '0'; return; } // Handle non-numeric or 0
+        if (target === 0) { element.textContent = '0'; return; }
+        const duration = 1500;
+        const stepTime = Math.max(10, Math.abs(Math.floor(duration / target)));
+        let current = 0;
+        const step = Math.max(1, Math.ceil(target / (duration / stepTime))); // Use ceil to ensure it reaches target
+
+        const timer = setInterval(() => {
+            current += step;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+            }
+            element.textContent = current.toLocaleString();
+        }, stepTime);
+         element.textContent = '0'; // Start at 0 visually
+    }
+
+
+    // --- DOM Content Loaded ---
+    document.addEventListener('DOMContentLoaded', (event) => {
+
+        // --- Theme Switching ---
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const preferredTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        function applyTheme(theme) {
+            const isDark = theme === 'dark';
+            document.body.classList.toggle('dark-theme', isDark);
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            if (themeToggleBtn) {
+                 themeToggleBtn.innerHTML = isDark ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+                 themeToggleBtn.title = `Switch to ${isDark ? 'Light' : 'Dark'} Theme`;
+            }
+            localStorage.setItem('theme', theme);
+            requestAnimationFrame(() => {
+                document.documentElement.style.setProperty('--accent-primary-rgb', getAccentRgb('--accent-primary'));
+                document.documentElement.style.setProperty('--accent-danger-rgb', getAccentRgb('--accent-danger'));
+                document.documentElement.style.setProperty('--accent-success-rgb', getAccentRgb('--accent-success'));
+                // Chart removal - No chart re-initialization needed
+            });
+        }
+        applyTheme(preferredTheme);
+        if (themeToggleBtn) {
+             themeToggleBtn.addEventListener('click', () => {
+                 const newTheme = document.body.classList.contains('dark-theme') ? 'light' : 'dark';
+                 applyTheme(newTheme);
+             });
+        }
+
+        // --- Drag and Drop & File Input Handling ---
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileListDisplay = document.getElementById('file-list');
+        const fileErrorDisplay = document.getElementById('file-error-list');
+        const classifyButton = document.getElementById('classifyButton');
+        function validateFiles(files) { let validFiles = []; let errors = []; Array.from(files).forEach(file => { if (isFileTypeAllowed(file.name)) { validFiles.push(file); } else { errors.push(`Invalid type: ${file.name}`); } }); return { validFiles, errors }; }
+        function updateClassifierFileList(files) { fileListDisplay.innerHTML = ''; fileErrorDisplay.innerHTML = ''; if (!files || files.length === 0) { if (classifyButton) classifyButton.disabled = true; return; } const { validFiles, errors } = validateFiles(files); if (validFiles.length > 0) { let fileListHTML = `<strong>Selected Files (${validFiles.length}):</strong><ul class="list-unstyled ps-2 mt-1 mb-0">`; validFiles.forEach(file => { const fileSize = file.size ? `(${(file.size / 1024).toFixed(1)} KB)` : ''; fileListHTML += `<li><small><i class="fas fa-file-alt text-secondary"></i> ${file.name} ${fileSize}</small></li>`; }); fileListHTML += `</ul>`; fileListDisplay.innerHTML = fileListHTML; } else { fileListDisplay.innerHTML = '<small>No valid files selected.</small>'; } if (errors.length > 0) { fileErrorDisplay.innerHTML = `<strong>Ignored Files:</strong><br>` + errors.join('<br>'); } if (classifyButton) classifyButton.disabled = (validFiles.length === 0); const dataTransfer = new DataTransfer(); validFiles.forEach(file => dataTransfer.items.add(file)); if (fileInput) fileInput.files = dataTransfer.files; }
+        if (classifyButton && fileInput && fileInput.files.length === 0) { classifyButton.disabled = true; }
+        if (dropZone && fileInput && fileListDisplay && fileErrorDisplay) { dropZone.addEventListener('click', () => fileInput.click()); dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); }); dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover')); dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); if (e.dataTransfer.files.length) { updateClassifierFileList(e.dataTransfer.files); } }); fileInput.addEventListener('change', (e) => { updateClassifierFileList(e.target.files); }); }
+        window.resetClassifierForm = function() { const form = document.getElementById('upload-form'); if(form) form.reset(); if(fileListDisplay) fileListDisplay.innerHTML = ''; if(fileErrorDisplay) fileErrorDisplay.innerHTML = ''; if (classifyButton) classifyButton.disabled = true; if(fileInput) fileInput.value = ""; }
+
+        // --- PDF Preview Handling ---
+        const pdfPreviewContainer = document.getElementById('pdf-preview-container');
+        const fullscreenBtn = document.getElementById('pdf-fullscreen-btn');
+        const resultsTableBody = document.getElementById('results-table-body');
+        let currentActivePdfUrl = null;
+        function displayPdfPreview(pdfUrl, pdfName) { if (!pdfPreviewContainer) return; pdfPreviewContainer.innerHTML = ''; pdfPreviewContainer.classList.remove('multi-pdf-view', 'single-pdf-view', 'no-pdf-view'); if (pdfUrl && pdfName) { pdfPreviewContainer.classList.add('single-pdf-view'); const pdfItemHTML = `<div class="pdf-item" data-pdf-url="${pdfUrl}" data-pdf-name="${pdfName}"><iframe class="pdf-viewer" src="${pdfUrl}#view=FitH&toolbar=0&navpanes=0&scrollbar=1" frameborder="0" title="PDF Preview: ${pdfName}"></iframe><div class="pdf-filename-display" title="${pdfName}"><small>${pdfName}</small></div></div>`; pdfPreviewContainer.innerHTML = pdfItemHTML; currentActivePdfUrl = pdfUrl; if (fullscreenBtn) fullscreenBtn.style.display = 'inline-block'; } else { pdfPreviewContainer.classList.add('no-pdf-view'); const placeholder = document.getElementById('pdf-placeholder') || document.createElement('div'); placeholder.className = 'placeholder-text w-100'; placeholder.id = 'pdf-placeholder'; placeholder.innerHTML = `<p><i class="fas fa-file-pdf fa-2x mb-2"></i><br>Click <i class="fas fa-eye"></i> to preview.</small></p>`; if (!document.getElementById('pdf-placeholder')) { pdfPreviewContainer.appendChild(placeholder); } currentActivePdfUrl = null; if (fullscreenBtn) fullscreenBtn.style.display = 'none'; } }
+        if (resultsTableBody) { resultsTableBody.addEventListener('click', (e) => { const targetButton = e.target.closest('.btn-preview-resume[data-pdf-url]'); if (targetButton) { const pdfUrl = targetButton.dataset.pdfUrl; const pdfName = targetButton.dataset.pdfName || pdfUrl.split('/').pop(); displayPdfPreview(pdfUrl, pdfName); pdfPreviewContainer?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } }); }
+        if (fullscreenBtn) { fullscreenBtn.addEventListener('click', () => { if (currentActivePdfUrl) { window.open(currentActivePdfUrl, '_blank'); } }); }
+        function setupInitialPdfPreview() { if (!pdfPreviewContainer) return; const pdfItems = pdfPreviewContainer.querySelectorAll('.pdf-item'); pdfPreviewContainer.classList.remove('multi-pdf-view', 'single-pdf-view', 'no-pdf-view'); if (pdfItems.length === 1) { pdfPreviewContainer.classList.add('single-pdf-view'); currentActivePdfUrl = pdfItems[0].dataset.pdfUrl; if (fullscreenBtn) fullscreenBtn.style.display = 'inline-block'; } else if (pdfItems.length > 1) { pdfPreviewContainer.classList.add('multi-pdf-view'); currentActivePdfUrl = pdfItems[0]?.dataset.pdfUrl; if (fullscreenBtn && currentActivePdfUrl) fullscreenBtn.style.display = 'inline-block'; else if (fullscreenBtn) fullscreenBtn.style.display = 'none'; let scrollTimeout; pdfPreviewContainer.addEventListener('scroll', () => { clearTimeout(scrollTimeout); scrollTimeout = setTimeout(updateFullscreenButtonStateMultiView, 150); }, { passive: true }); updateFullscreenButtonStateMultiView(); } else { pdfPreviewContainer.classList.add('no-pdf-view'); if (!document.getElementById('pdf-placeholder')) { const placeholder = document.createElement('div'); placeholder.className = 'placeholder-text w-100'; placeholder.id = 'pdf-placeholder'; placeholder.innerHTML = `<p><i class="fas fa-file-pdf fa-2x mb-2"></i><br>No PDFs in last batch or click <i class="fas fa-eye"></i> to preview.</small></p>`; pdfPreviewContainer.innerHTML = ''; pdfPreviewContainer.appendChild(placeholder); } currentActivePdfUrl = null; if (fullscreenBtn) fullscreenBtn.style.display = 'none'; } }
+        function updateFullscreenButtonStateMultiView() { if (!pdfPreviewContainer || !pdfPreviewContainer.classList.contains('multi-pdf-view')) return; const pdfItems = pdfPreviewContainer.querySelectorAll('.pdf-item'); if (pdfItems.length === 0) { return; } let mostVisibleItem = null; let maxVisibilityScore = -1; const containerRect = pdfPreviewContainer.getBoundingClientRect(); const containerCenter = containerRect.left + containerRect.width / 2; pdfItems.forEach(item => { const itemRect = item.getBoundingClientRect(); const intersectionLeft = Math.max(itemRect.left, containerRect.left); const intersectionRight = Math.min(itemRect.right, containerRect.right); const visibleWidth = Math.max(0, intersectionRight - intersectionLeft); const visibilityRatio = itemRect.width > 0 ? visibleWidth / itemRect.width : 0; const itemCenter = itemRect.left + itemRect.width / 2; const centerProximity = Math.max(0, 1 - (Math.abs(itemCenter - containerCenter) / (containerRect.width / 2))); const score = (visibilityRatio * 0.6) + (centerProximity * 0.4); item.classList.remove('active-preview'); if (score > maxVisibilityScore) { maxVisibilityScore = score; mostVisibleItem = item; } }); if (mostVisibleItem) { currentActivePdfUrl = mostVisibleItem.dataset.pdfUrl; mostVisibleItem.classList.add('active-preview'); if (fullscreenBtn) fullscreenBtn.style.display = 'inline-block'; } else { currentActivePdfUrl = pdfItems[0]?.dataset.pdfUrl; if (pdfItems[0]) pdfItems[0].classList.add('active-preview'); if (fullscreenBtn && currentActivePdfUrl) fullscreenBtn.style.display = 'inline-block'; else if (fullscreenBtn) fullscreenBtn.style.display = 'none'; } }
+        setupInitialPdfPreview();
+
+        // --- Download Handler (Classifier Dashboard) ---
+        window.handleDownload = function(event) { /* ... (download handler logic) ... */
+            event.preventDefault(); const roleSelect = document.getElementById("roleSelect"); const selectedRole = roleSelect ? roleSelect.value : null;
+            if (selectedRole) { window.location.href = `/download/${encodeURIComponent(selectedRole)}`; }
+            else { alert("Please select a role to download."); if (roleSelect) roleSelect.focus(); }
+        }
+
+        // --- Tooltips Initialization ---
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"], [title]:not(iframe)'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) { return new bootstrap.Tooltip(tooltipTriggerEl, { trigger : 'hover' }); });
+
+        // --- Sidebar Link Scrolling & Active State ---
+        const sidebarLinks = document.querySelectorAll('#sidebar .components a.nav-link[href^="#"]');
+        const contentArea = document.getElementById('content');
+        function setActiveLink() { /* ... (active link logic) ... */ if (!contentArea) return; let currentSectionId = null; const scrollPosition = contentArea.scrollTop; const contentPaddingTop = parseFloat(window.getComputedStyle(contentArea).paddingTop || '0'); const offset = 60; sidebarLinks.forEach(link => { const targetId = link.getAttribute('href'); if (!targetId || targetId === '#') return; const targetElement = document.querySelector(targetId); if (targetElement) { const targetOffsetTop = targetElement.offsetTop - contentArea.offsetTop; if (scrollPosition >= targetOffsetTop - offset) { currentSectionId = targetId; } } }); if ((contentArea.scrollHeight - contentArea.scrollTop - contentArea.clientHeight) < 50 && sidebarLinks.length > 0) { const lastLink = sidebarLinks[sidebarLinks.length - 1]; const lastTargetId = lastLink.getAttribute('href'); if (lastTargetId && lastTargetId !== '#') { currentSectionId = lastTargetId; } } sidebarLinks.forEach(link => { const isActive = link.getAttribute('href') === currentSectionId; link.parentElement.classList.toggle('active', isActive); const parentCollapse = link.closest('.collapse'); if (parentCollapse) { const parentToggle = document.querySelector(`a[data-bs-toggle="collapse"][href="#${parentCollapse.id}"]`); if (parentToggle) { const isAnyChildActive = Array.from(parentCollapse.querySelectorAll('li')).some(li => li.classList.contains('active')); parentToggle.parentElement.classList.toggle('active', isAnyChildActive); parentToggle.setAttribute('aria-expanded', parentCollapse.classList.contains('show').toString()); } } }); if (!currentSectionId && sidebarLinks.length > 0) { const firstLink = sidebarLinks[0]; if (firstLink.getAttribute('href') !== '#') { firstLink.parentElement.classList.add('active'); } } }
+        sidebarLinks.forEach(anchor => { /* ... (click scroll logic) ... */ anchor.addEventListener('click', function (e) { const targetId = this.getAttribute('href'); if (!targetId || targetId === '#' || !contentArea) return; const targetElement = document.querySelector(targetId); if (targetElement) { e.preventDefault(); const contentPaddingTop = parseFloat(window.getComputedStyle(contentArea).paddingTop || '0'); const targetOffsetTop = targetElement.offsetTop - contentArea.offsetTop; contentArea.scrollTo({ top: targetOffsetTop - (contentPaddingTop / 2), behavior: 'smooth' }); } }); });
+        let scrollDebounceTimeout; if (contentArea) { contentArea.addEventListener('scroll', () => { clearTimeout(scrollDebounceTimeout); scrollDebounceTimeout = setTimeout(setActiveLink, 50); }, { passive: true }); }
+        setActiveLink();
+
+        // --- Sidebar Toggle for Mobile ---
+        const sidebarCollapseBtn = document.getElementById('sidebarCollapse');
+        const sidebar = document.getElementById('sidebar');
+        if (sidebarCollapseBtn && sidebar) { sidebarCollapseBtn.addEventListener('click', () => { sidebar.classList.toggle('active'); }); }
+
+        // --- Confirmation for Clear History ---
+        window.confirmClearHistory = function() { /* ... (confirmation logic) ... */ const clearFilesCheckbox = document.getElementById('clearFilesCheck'); let message = "Clear classification history?"; if (clearFilesCheckbox && clearFilesCheckbox.checked) { message += "\n\nWARNING: Also PERMANENTLY DELETE uploaded files."; } message += "\n\nThis action cannot be undone."; return confirm(message); }
+
+        // --- Dashboard Counter Animation Trigger ---
+        const counterElement = document.getElementById('total-resumes-counter');
+        if (counterElement && 'IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries) => { if (entries[0].isIntersecting) { animateCounter(counterElement); observer.unobserve(counterElement); } }, { threshold: 0.5 }); observer.observe(counterElement);
+        } else if (counterElement) { counterElement.textContent = parseInt(counterElement.dataset.target, 10).toLocaleString(); }
+
+        // --- Clear Current Results Button ---
+        const clearCurrentBtn = document.getElementById('clear-current-results-btn');
+        const resultsSection = document.getElementById('results-section');
+        const resultsCardBody = document.getElementById('results-card-body');
+        const resultsClearedMsg = document.getElementById('results-cleared-message');
+
+        if (clearCurrentBtn && resultsSection) {
+            clearCurrentBtn.addEventListener('click', () => {
+                // Option 1: Simple Reload (Easiest & most reliable way to clear session data)
+                // window.location.reload();
+
+                // Option 2: Visual clear + show message (User might still see old data if they navigate back without reload)
+                if(resultsCardBody) resultsCardBody.style.display = 'none'; // Hide results
+                if(resultsClearedMsg) resultsClearedMsg.style.display = 'block'; // Show message
+                clearCurrentBtn.style.display = 'none'; // Hide the clear button itself
+
+                // Optional: Scroll to top or relevant section after clearing
+                // const classifierSection = document.getElementById('classifier-section');
+                // if (classifierSection) classifierSection.scrollIntoView({ behavior: 'smooth' });
+            });
+        }
+
+    }); // End DOMContentLoaded
+</script>
+
+</body>
+</html>

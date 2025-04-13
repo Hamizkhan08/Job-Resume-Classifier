@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light"> <!-- Set initial theme, JS will handle switching -->
+<head>
+    <meta charset="UTF-8">
+    <title>Resume Match Analysis</title> <!-- Updated Title -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        /* --- Theme Variables (Copied from index.html) --- */
+        :root { /* Light Theme: Blue/Green/White */
+            --bg-primary: #f0f4f8; --bg-secondary: #ffffff; --bg-tertiary: #e9ecef;
+            --text-primary: #212529; --text-secondary: #5a626e; --text-muted: #7a828a;
+            --border-color: #d8dfe6; --accent-primary: #007bff; --accent-primary-hover: #0056b3;
+            --accent-secondary: #28a745; --accent-danger: #dc3545; --accent-danger-hover: #bb2d3b;
+            --accent-warning: #ffc107; --accent-success: var(--accent-secondary); --accent-info: #17a2b8;
+            --link-color: var(--accent-primary); --link-hover-color: var(--accent-primary-hover);
+            --card-shadow: 0 4px 15px rgba(0, 86, 179, 0.07); --code-bg: #e9ecef; --code-color: #d63384;
+            --accent-primary-rgb: 0, 123, 255; --accent-danger-rgb: 220, 53, 69; --accent-success-rgb: 40, 167, 69; --accent-warning-rgb: 255, 193, 7;
+        }
+        .dark-theme { /* Dark Theme: Black/Red/Electric Blue */
+            --bg-primary: #121212; --bg-secondary: #1e1e1e; --bg-tertiary: #2c2c2e;
+            --text-primary: #e4e6eb; --text-secondary: #b0bac0; --text-muted: #888d93;
+            --border-color: #3a3a3c; --accent-primary: #ff3b5f; --accent-primary-hover: #e02146;
+            --accent-secondary: #00f2ea; --accent-danger: #ff5c7a; --accent-danger-hover: var(--accent-primary);
+            --accent-warning: #ffc767; --accent-success: #34d399; --accent-info: var(--accent-secondary);
+            --link-color: var(--accent-secondary); --link-hover-color: #00cdd4;
+            --card-shadow: 0 5px 20px rgba(0, 0, 0, 0.35); --code-bg: #2c2c2e; --code-color: #f06aae;
+            --accent-primary-rgb: 255, 59, 95; --accent-danger-rgb: 255, 92, 122; --accent-success-rgb: 52, 211, 153; --accent-warning-rgb: 255, 199, 103;
+        }
+        /* Apply Bootstrap's dark theme body variables */
+        .dark-theme {
+            --bs-body-color: var(--text-primary); --bs-body-bg: var(--bg-primary); --bs-border-color: var(--border-color);
+            --bs-secondary-color: var(--text-secondary); --bs-secondary-bg: var(--bg-secondary);
+            --bs-tertiary-color: var(--text-muted); --bs-tertiary-bg: var(--bg-tertiary);
+            --bs-emphasis-color: #fff; --bs-body-color-rgb: 228, 230, 235; --bs-body-bg-rgb: 18, 18, 18;
+            --bs-link-color: var(--link-color); --bs-link-hover-color: var(--link-hover-color);
+            --bs-link-color-rgb: 0, 242, 234; --bs-code-color: var(--code-color);
+            --bs-border-color-translucent: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Specific styles for this results page */
+        body {
+            background-color: var(--bg-primary); color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            height: auto; overflow-y: auto; transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        /* Use container-fluid for full width */
+        .container-fluid { padding: 2rem 3rem; } /* Add padding */
+        @media (max-width: 768px) { .container-fluid { padding: 1.5rem; } }
+
+        .card {
+            background-color: var(--bg-secondary); border: none; border-radius: 16px;
+            margin-bottom: 2rem; box-shadow: var(--card-shadow); overflow: hidden;
+            transition: all 0.3s ease; /* Smooth transitions */
+        }
+        .card-header {
+            background-color: var(--bg-tertiary); color: var(--text-primary); font-weight: 600;
+            border-bottom: 1px solid var(--border-color); padding: 1rem 1.5rem; font-size: 1.1rem;
+            display: flex; align-items: center; gap: 10px;
+        }
+         .card-header i { color: var(--accent-primary); } /* Use primary color for header icons */
+        .card-body { padding: 1.75rem; }
+
+        .result-summary {
+            border-radius: 12px; padding: 1rem 1.5rem; font-weight: 500;
+            border: 1px solid transparent; text-align: center; margin-bottom: 2rem;
+        }
+        .result-summary.winner-1, .result-summary.winner-2 {
+            background-color: rgba(var(--accent-success-rgb), 0.1); border-color: rgba(var(--accent-success-rgb), 0.2);
+            color: var(--accent-success); box-shadow: 0 0 15px rgba(var(--accent-success-rgb), 0.1);
+        }
+        .result-summary.tie {
+            background-color: rgba(var(--accent-warning-rgb), 0.1); border-color: rgba(var(--accent-warning-rgb), 0.2);
+            color: #b98900; box-shadow: 0 0 15px rgba(var(--accent-warning-rgb), 0.1);
+        }
+        .dark-theme .result-summary.tie { color: var(--accent-warning); }
+        .result-summary h5 { font-weight: 600; }
+
+        .score-display { text-align: center; margin-bottom: 1.5rem; }
+        .score-display .score-label { font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem; display: block;}
+        .score-display .score { font-size: 2.8rem; font-weight: 700; line-height: 1.1; }
+        .score-display .score.text-primary { color: var(--accent-primary) !important; }
+        /* Use electric blue for R2 score in dark theme */
+        .dark-theme .score-display .score.text-info { color: var(--accent-secondary) !important; }
+        .light-theme .score-display .score.text-info { color: var(--accent-info) !important; } /* Teal in light */
+
+        .keywords-section h6 { font-size: 1rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+        .keywords-section h6 i { color: var(--accent-success); }
+        .filter-input {
+            font-size: 0.85rem; padding: 0.3rem 0.6rem; margin-bottom: 0.75rem;
+            background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);
+        }
+        .filter-input::placeholder { color: var(--text-muted); opacity: 0.7; }
+         .dark-theme .filter-input { background-color: var(--bg-tertiary); }
+
+        .keywords-list {
+            font-size: 0.9em; max-height: 220px; overflow-y: auto; background-color: var(--bg-primary);
+            padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border-color);
+        }
+        .keywords-list li { margin-bottom: 5px; padding-left: 1.4em; position: relative; line-height: 1.4; word-break: break-word; }
+        .keywords-list li::before {
+            content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute;
+            left: 0; top: 0.1em; color: var(--accent-success); font-size: 0.9em;
+        }
+        .keywords-list li.no-match { display: none; } /* JS uses this */
+        .keywords-list .no-keywords-message { font-style: italic; color: var(--text-muted); }
+
+        .winner-highlight-1, .winner-highlight-2 { border-left: 6px solid var(--accent-success); }
+        .tie-highlight { border-left: 6px solid var(--accent-warning); }
+
+        .job-desc-display {
+            max-height: 150px; overflow-y: auto; background-color: var(--bg-tertiary); padding: 15px;
+            border-radius: 8px; border: 1px solid var(--border-color); white-space: pre-wrap;
+            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace; font-size: 0.9em;
+            color: var(--text-secondary);
+        }
+         .job-desc-display.collapsed { max-height: 70px; } /* Height when collapsed */
+         .toggle-jd-btn { font-size: 0.8em; text-decoration: none; }
+
+        .error-card { border-left: 5px solid var(--accent-danger); }
+        .error-card .card-header { background-color: rgba(var(--accent-danger-rgb), 0.1); color: var(--accent-danger); border-bottom-color: rgba(var(--accent-danger-rgb), 0.2); }
+        .btn i { margin-right: 6px; }
+        .btn-outline-secondary { color: var(--text-secondary); border-color: var(--border-color); }
+        .btn-outline-secondary:hover { background-color: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-color); }
+
+        /* Score Difference Card */
+        .score-diff-card { background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary)); border-left: 5px solid var(--accent-info); }
+        .dark-theme .score-diff-card { background: linear-gradient(135deg, var(--bg-tertiary), #252930); border-left-color: var(--accent-secondary);}
+        .score-diff-card .score-diff-value { font-size: 1.5rem; font-weight: 600; color: var(--accent-info); }
+        .dark-theme .score-diff-card .score-diff-value { color: var(--accent-secondary); }
+        .score-diff-card .text-muted { color: var(--text-muted) !important; }
+
+    </style>
+</head>
+<body class="light-theme"> <!-- Default theme, JS applies preference -->
+    <div class="container-fluid py-4 px-lg-5"> <!-- Use container-fluid and add padding -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+             <h1 class="h2"><i class="fas fa-balance-scale me-2 text-primary"></i>Resume Match Analysis</h1>
+             <!-- Theme Toggle Button -->
+            <button id="theme-toggle" class="btn btn-sm btn-outline-secondary" title="Toggle theme"><i class="fa-solid fa-sun"></i></button>
+        </div>
+
+        {# --- ERROR HANDLING BLOCK --- #}
+        {% if results and results.error %}
+            <div class="card error-card mb-4">
+                 <div class="card-header"> <i class="fas fa-exclamation-triangle me-2"></i>Error During Comparison </div>
+                 <div class="card-body">
+                     <p class="card-text text-danger">Could not complete the comparison:</p>
+                     <p class="fw-bold">{{ results.error }}</p>
+                     <p class="text-muted small mt-3">Please check inputs or review application logs.</p>
+                 </div>
+                 <div class="card-footer text-center">
+                     <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back to Main Tools</a>
+                 </div>
+            </div>
+
+        {# --- SUCCESSFUL RESULTS BLOCK --- #}
+        {% elif results %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                     <span><i class="fas fa-briefcase text-secondary"></i> Target Job Role / Description</span>
+                     <button class="btn btn-sm btn-outline-secondary toggle-jd-btn" type="button" data-bs-toggle="collapse" data-bs-target="#jobDescCollapse" aria-expanded="false" aria-controls="jobDescCollapse">
+                         <i class="fas fa-chevron-down"></i> Expand/Collapse
+                     </button>
+                </div>
+                <div class="collapse" id="jobDescCollapse"> <!-- Start collapsed -->
+                    <div class="card-body py-2"> <!-- Reduced padding when collapsed -->
+                         <div class="job-desc-display" title="Provided Job Description">{{ results.job_role }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {# Display Summary Message #}
+            <div class="alert result-summary {% if results.winner == 1 %}winner-1{% elif results.winner == 2 %}winner-2{% else %}tie{% endif %}" role="alert">
+                 <h5 class="alert-heading mb-0">{{ results.best_match_message }}</h5>
+            </div>
+
+             {# Display Score Difference #}
+             <div class="card score-diff-card mb-4">
+                <div class="card-body text-center">
+                    <span class="text-muted">Score Difference</span><br>
+                    <span class="score-diff-value" id="score-difference">-%</span>
+                </div>
+            </div>
+
+
+            {# Display Resume Cards #}
+            <div class="row g-4">
+                <!-- Resume 1 Card -->
+                <div class="col-lg-6 d-flex">
+                    <div class="card h-100 w-100 {% if results.winner == 1 %}winner-highlight-1{% elif results.winner == 0 %}tie-highlight{% endif %}">
+                        <div class="card-header"><i class="fas fa-file-alt text-primary"></i> Resume 1: {{ results.filename1 }}</div>
+                        <div class="card-body d-flex flex-column keywords-section">
+                            <div class="score-display">
+                                <span class="score-label">Match Score</span>
+                                <span class="score text-primary" id="score1">{{ results.similarity1 }}%</span>
+                            </div>
+                            <hr class="my-3">
+                            <h6>
+                                <span><i class="fas fa-key me-1 text-success"></i>Top Matching Keywords</span>
+                                <span class="badge bg-secondary rounded-pill ms-1" title="Total keywords found in both resume and job description">{{ results.kw_count1 }} total</span>
+                            </h6>
+                            <input type="text" class="form-control form-control-sm filter-input" id="filter-keywords1" placeholder="Filter keywords..." aria-label="Filter keywords for resume 1">
+                            {% if results.keywords1 %}
+                                <ul class="list-unstyled keywords-list mt-1 mb-0 flex-grow-1" id="keywords-list1">
+                                    {% for kw in results.keywords1 %}<li>{{ kw }}</li>{% endfor %}
+                                </ul>
+                            {% elif results.kw_count1 > 0 %}
+                                <p class="text-muted mt-2 mb-0 flex-grow-1 keywords-list"><small class="no-keywords-message">Keywords matched, but none ranked in the top shown. Total found: {{ results.kw_count1 }}.</small></p>
+                            {% else %}
+                                <p class="text-muted mt-2 mb-0 flex-grow-1 keywords-list"><small class="no-keywords-message">No common keywords found.</small></p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resume 2 Card -->
+                 <div class="col-lg-6 d-flex">
+                     <div class="card h-100 w-100 {% if results.winner == 2 %}winner-highlight-2{% elif results.winner == 0 %}tie-highlight{% endif %}">
+                        <div class="card-header"><i class="fas fa-file-alt text-info"></i> Resume 2: {{ results.filename2 }}</div>
+                        <div class="card-body d-flex flex-column keywords-section">
+                            <div class="score-display">
+                                <span class="score-label">Match Score</span>
+                                <span class="score text-info" id="score2">{{ results.similarity2 }}%</span>
+                            </div>
+                             <hr class="my-3">
+                             <h6>
+                                 <span><i class="fas fa-key me-1 text-success"></i>Top Matching Keywords</span>
+                                 <span class="badge bg-secondary rounded-pill ms-1" title="Total keywords found in both resume and job description">{{ results.kw_count2 }} total</span>
+                             </h6>
+                            <input type="text" class="form-control form-control-sm filter-input" id="filter-keywords2" placeholder="Filter keywords..." aria-label="Filter keywords for resume 2">
+                             {% if results.keywords2 %}
+                                <ul class="list-unstyled keywords-list mt-1 mb-0 flex-grow-1" id="keywords-list2">
+                                    {% for kw in results.keywords2 %}<li>{{ kw }}</li>{% endfor %}
+                                </ul>
+                             {% elif results.kw_count2 > 0 %}
+                                 <p class="text-muted mt-2 mb-0 flex-grow-1 keywords-list"><small class="no-keywords-message">Keywords matched, but none ranked in the top shown. Total found: {{ results.kw_count2 }}.</small></p>
+                             {% else %}
+                                 <p class="text-muted mt-2 mb-0 flex-grow-1 keywords-list"><small class="no-keywords-message">No common keywords found.</small></p>
+                             {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div> {# End row #}
+
+        {# --- Fallback if results object is missing entirely --- #}
+        {% else %}
+            <div class="alert alert-danger" role="alert">
+                <h4 class="alert-heading">Error</h4>
+                <p>Could not retrieve or display comparison results. The data might be missing or corrupted.</p>
+                 <p class="mb-0">Please try the comparison again or check the application logs.</p>
+            </div>
+        {% endif %}
+
+        {# --- Back Button --- #}
+         <div class="text-center mt-4 pt-3 border-top">
+             <a href="{{ url_for('index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Back to Main Tools</a>
+         </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Theme Toggle ---
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const applyTheme = (theme) => {
+                const isDark = theme === 'dark';
+                document.body.classList.toggle('dark-theme', isDark);
+                document.documentElement.setAttribute('data-bs-theme', theme);
+                if (themeToggleBtn) {
+                    themeToggleBtn.innerHTML = isDark ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+                    themeToggleBtn.title = `Switch to ${isDark ? 'Light' : 'Dark'} Theme`;
+                }
+                 localStorage.setItem('theme', theme);
+            };
+            const preferredTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            applyTheme(preferredTheme);
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', () => {
+                    const newTheme = document.body.classList.contains('dark-theme') ? 'light' : 'dark';
+                    applyTheme(newTheme);
+                });
+            }
+
+            // --- Calculate Score Difference ---
+            const score1El = document.getElementById('score1');
+            const score2El = document.getElementById('score2');
+            const scoreDiffEl = document.getElementById('score-difference');
+            if (score1El && score2El && scoreDiffEl) {
+                try {
+                    const score1 = parseFloat(score1El.textContent);
+                    const score2 = parseFloat(score2El.textContent);
+                    if (!isNaN(score1) && !isNaN(score2)) {
+                        const diff = Math.abs(score1 - score2);
+                        scoreDiffEl.textContent = `${diff.toFixed(2)}%`;
+                    } else {
+                         scoreDiffEl.textContent = 'N/A';
+                    }
+                } catch (e) {
+                    console.error("Error calculating score difference:", e);
+                     scoreDiffEl.textContent = 'Error';
+                }
+            }
+
+             // --- Keyword Filtering ---
+             function setupKeywordFilter(inputId, listId) {
+                const filterInput = document.getElementById(inputId);
+                const keywordList = document.getElementById(listId);
+                if (!filterInput || !keywordList) return;
+
+                const listItems = keywordList.querySelectorAll('li');
+                const noKeywordsMessage = keywordList.querySelector('.no-keywords-message');
+
+                filterInput.addEventListener('keyup', () => {
+                    const filterText = filterInput.value.toLowerCase().trim();
+                    let visibleCount = 0;
+                    listItems.forEach(item => {
+                        const itemText = item.textContent.toLowerCase();
+                        const isVisible = itemText.includes(filterText);
+                        item.style.display = isVisible ? '' : 'none';
+                        if (isVisible) visibleCount++;
+                    });
+                    // Show/hide the 'no keywords found' message based on filtering
+                    if (noKeywordsMessage) {
+                         noKeywordsMessage.style.display = (listItems.length > 0 && visibleCount === 0) ? 'block' : 'none';
+                     }
+                });
+            }
+            setupKeywordFilter('filter-keywords1', 'keywords-list1');
+            setupKeywordFilter('filter-keywords2', 'keywords-list2');
+
+            // --- Initialize Bootstrap Collapse for Job Description ---
+            const collapseElement = document.getElementById('jobDescCollapse');
+            if (collapseElement) {
+                // Optional: Initialize if needed, Bootstrap usually handles data-bs-toggle automatically
+                // const bsCollapse = new bootstrap.Collapse(collapseElement, { toggle: false });
+
+                // Optional: Change button icon based on collapse state
+                 const toggleButton = document.querySelector('[data-bs-target="#jobDescCollapse"] i');
+                 if (toggleButton) {
+                     collapseElement.addEventListener('show.bs.collapse', () => {
+                         toggleButton.classList.remove('fa-chevron-down');
+                         toggleButton.classList.add('fa-chevron-up');
+                     });
+                     collapseElement.addEventListener('hide.bs.collapse', () => {
+                          toggleButton.classList.remove('fa-chevron-up');
+                          toggleButton.classList.add('fa-chevron-down');
+                     });
+                 }
+            }
+
+
+        }); // End DOMContentLoaded
+    </script>
+
+</body>
+</html>
